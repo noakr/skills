@@ -1,0 +1,99 @@
+# Trigger evaluation for: skills/wix-manage/references/seo/manage-seo-suggestions.md
+#
+# Checks that the skill "Generate AI SEO Suggestions for a Wix Site" is activated
+# for requests it should handle, and not for requests that belong to sibling SEO
+# skills or are not about a Wix site at all.
+#
+# Format (no automated runner yet; intended for manual runs or an eval harness):
+#   skill:        skill under test
+#   cases[].id        stable identifier
+#   cases[].prompt    the user message, sent as the first turn of a fresh conversation
+#   cases[].expect.skill_activated   true / false
+#   cases[].expect.endpoints         (positive cases) suggestion endpoints that should be called
+#   cases[].expect.skill_instead     (negative cases) the skill that should handle it
+#   cases[].expect.must_not          behaviors that fail the case
+skill: generate-ai-seo-suggestions-for-a-wix-site
+
+cases:
+  # ---- Should activate -------------------------------------------------------
+  - id: product-title-before-listing
+    # The conversation that exposed the original routing miss.
+    prompt: "I'm about to list a handmade leather wallet. What product title would rank well in search?"
+    expect:
+      skill_activated: true
+      endpoints: [GenerateTitleSuggestions]
+      must_not:
+        - writes titles from its own knowledge instead of the generator's output
+        - sets the focus keyword or applies any tag
+
+  - id: meta-description-options
+    prompt: "Give me a few meta description options for my About page."
+    expect:
+      skill_activated: true
+      endpoints: [GenerateDescriptionSuggestions]
+      must_not:
+        - offers the page's current description as an option
+
+  - id: page-title-google-friendly
+    prompt: "Can you write a more Google-friendly title for my pricing page?"
+    expect:
+      skill_activated: true
+      endpoints: [GenerateTitleSuggestions]
+
+  - id: blog-post-title-ranking
+    prompt: "What title would help my blog post about sourdough starters perform better in search?"
+    expect:
+      skill_activated: true
+      endpoints: [GenerateTitleSuggestions]
+      must_not:
+        - runs page optimization (not supported for blog posts)
+
+  - id: image-alt-text
+    prompt: "Write alt text for the images on my product page."
+    expect:
+      skill_activated: true
+      endpoints: [GenerateAltTextSuggestions, BulkGenerateAltTextSuggestions]
+
+  - id: heading-structure
+    prompt: "Check whether the headings on my home page are in the right order."
+    expect:
+      skill_activated: true
+      endpoints: [GenerateHeadingStructureSuggestions]
+
+  - id: optimize-page-for-keyword
+    prompt: "Optimize my services page for the keyword 'wedding photographer'."
+    expect:
+      skill_activated: true
+      endpoints: [TriggerPageOptimization, GetPageOptimizationResults]
+      must_not:
+        - uses only the title and description generators
+
+  - id: improve-homepage-seo
+    prompt: "Improve the SEO of my homepage."
+    expect:
+      skill_activated: true
+      endpoints: [TriggerHomePageOptimization, GetPageOptimizationResults]
+
+  # ---- Should not activate ---------------------------------------------------
+  - id: apply-existing-seo-tags
+    prompt: "Set the title tag of my contact page to 'Contact Us | Luna Studio'."
+    expect:
+      skill_activated: false
+      skill_instead: manage-a-wix-site-s-seo-tags
+
+  - id: url-redirect
+    prompt: "Redirect /old-shop to /shop."
+    expect:
+      skill_activated: false
+      skill_instead: manage-url-redirects-on-a-wix-site
+
+  - id: search-console
+    prompt: "Connect my site to Google Search Console."
+    expect:
+      skill_activated: false
+      skill_instead: manage-google-search-console-for-a-wix-site
+
+  - id: not-about-a-wix-site
+    prompt: "Explain how Google decides which pages to rank first."
+    expect:
+      skill_activated: false
